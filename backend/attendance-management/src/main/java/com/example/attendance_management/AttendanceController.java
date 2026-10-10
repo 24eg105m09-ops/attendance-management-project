@@ -1,13 +1,14 @@
-package com.example.attendance_management;
 
-import org.springframework.web.bind.annotation.*;
+package com.example.attendance_management;
 
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.web.bind.annotation.*;
+
 @RestController
 @RequestMapping("/attendance")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins ="*")
 public class AttendanceController {
 
     private final AttendanceRepository attendanceRepository;
@@ -26,20 +27,18 @@ public class AttendanceController {
     @PostMapping
     public Attendance addAttendance(@RequestBody Attendance attendance) {
 
-        // If date is empty, use today's date
-        if (attendance.getDate() == null || attendance.getDate().isEmpty()) {
+        if (attendance.getDate() == null ||
+            attendance.getDate().isEmpty()) {
             attendance.setDate(LocalDate.now().toString());
         }
 
-        // Check if attendance already exists for this student and date
         var existingAttendance =
-                attendanceRepository.findByStudentIdAndDate(
-                        attendance.getStudentId(),
-                        attendance.getDate()
-                );
+            attendanceRepository.findByStudentIdAndDate(
+                attendance.getStudentId(),
+                attendance.getDate()
+            );
 
         if (existingAttendance.isPresent()) {
-
             Attendance record = existingAttendance.get();
 
             record.setStudentName(attendance.getStudentName());
@@ -49,11 +48,12 @@ public class AttendanceController {
             return attendanceRepository.save(record);
         }
 
-        // Create a new attendance record
         return attendanceRepository.save(attendance);
     }
+
+    // Delete attendance by ID
     @DeleteMapping("/{id}")
-public void deleteAttendance(@PathVariable Long id) {
-    attendanceRepository.deleteById(id);
-}
+    public void deleteAttendance(@PathVariable Long id) {
+        attendanceRepository.deleteById(id);
+    }
 }
