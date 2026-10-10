@@ -1,15 +1,17 @@
 
 import { useEffect, useState } from "react";
 
-const API_URL = "https://attendance-management-project-v5fk.onrender.com";
+const API_URL =
+  "https://attendance-management-project-v5fk.onrender.com";
 
 function Attendance() {
   const [students, setStudents] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [savingId, setSavingId] = useState(null);
   const [message, setMessage] = useState("");
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("en-CA");
 
   const loadData = async () => {
     try {
@@ -56,6 +58,8 @@ function Attendance() {
     }
 
     try {
+      setSavingId(student.id);
+
       const response = await fetch(`${API_URL}/attendance`, {
         method: "POST",
         headers: {
@@ -66,7 +70,7 @@ function Attendance() {
           studentName: student.name,
           course: student.course,
           date: today,
-          status: status,
+          status,
         }),
       });
 
@@ -74,18 +78,25 @@ function Attendance() {
         throw new Error("Failed to save attendance");
       }
 
-      setMessage(`${student.name}: marked ${status.toLowerCase()} successfully.`);
+      setMessage(
+        `${student.name}: marked ${status.toLowerCase()} successfully.`
+      );
+
       await loadData();
     } catch (error) {
       console.error("Mark attendance error:", error);
-      setMessage(
-        "Could not save attendance. Please check the backend and try again."
-      );
+      setMessage("Could not save attendance. Please try again.");
+    } finally {
+      setSavingId(null);
     }
   };
 
   if (loading) {
-    return <div className="container"><h2>Loading attendance...</h2></div>;
+    return (
+      <div className="container">
+        <h2>Loading attendance...</h2>
+      </div>
+    );
   }
 
   return (
@@ -93,11 +104,7 @@ function Attendance() {
       <h1>Attendance Management</h1>
       <p className="welcome">Mark student attendance for {today}</p>
 
-      {message && (
-        <p role="status" style={{ margin: "15px 0", color: "#1e3a8a" }}>
-          {message}
-        </p>
-      )}
+      {message && <p role="status">{message}</p>}
 
       <section className="attendance-section">
         <h2>Student Attendance</h2>
@@ -143,15 +150,15 @@ function Attendance() {
                     <td>
                       <button
                         type="button"
-                        disabled={Boolean(record)}
+                        disabled={Boolean(record) || savingId === student.id}
                         onClick={() => markAttendance(student, "Present")}
                       >
-                        Present
+                        {savingId === student.id ? "Saving..." : "Present"}
                       </button>
 
                       <button
                         type="button"
-                        disabled={Boolean(record)}
+                        disabled={Boolean(record) || savingId === student.id}
                         onClick={() => markAttendance(student, "Absent")}
                       >
                         Absent

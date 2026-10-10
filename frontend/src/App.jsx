@@ -1,10 +1,13 @@
 
+
 import { useEffect, useState } from "react";
+import "./App.css";
 import Login from "./Login";
 import Students from "./Students";
 import Attendance from "./Attendance";
 
-const API_URL = "https://attendance-management-project-v5fk.onrender.com";
+const API_URL =
+  "https://attendance-management-project-v5fk.onrender.com";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -15,21 +18,29 @@ function App() {
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    fetch(`${API_URL}/students`)
-      .then((response) => {
-        if (!response.ok) throw new Error("Unable to load students");
-        return response.json();
-      })
-      .then((data) => setStudents(data))
-      .catch((error) => console.error("Students error:", error));
+    const loadData = async () => {
+      try {
+        const [studentsResponse, attendanceResponse] =
+          await Promise.all([
+            fetch(`${API_URL}/students`),
+            fetch(`${API_URL}/attendance`),
+          ]);
 
-    fetch(`${API_URL}/attendance`)
-      .then((response) => {
-        if (!response.ok) throw new Error("Unable to load attendance");
-        return response.json();
-      })
-      .then((data) => setAttendance(data))
-      .catch((error) => console.error("Attendance error:", error));
+        if (!studentsResponse.ok || !attendanceResponse.ok) {
+          throw new Error("Unable to load dashboard data");
+        }
+
+        const studentsData = await studentsResponse.json();
+        const attendanceData = await attendanceResponse.json();
+
+        setStudents(studentsData);
+        setAttendance(attendanceData);
+      } catch (error) {
+        console.error("Dashboard error:", error);
+      }
+    };
+
+    loadData();
   }, [isLoggedIn]);
 
   if (!isLoggedIn) {
@@ -39,7 +50,7 @@ function App() {
   const today = new Date().toISOString().split("T")[0];
 
   const todayAttendance = attendance.filter(
-    (record) => record.date === today
+    (record) => String(record.date).slice(0, 10) === today
   );
 
   const presentCount = todayAttendance.filter(
@@ -56,9 +67,17 @@ function App() {
         <h2>Attendance Management System</h2>
 
         <div className="nav-links">
-          <span onClick={() => setPage("dashboard")}>Dashboard</span>
-          <span onClick={() => setPage("students")}>Students</span>
-          <span onClick={() => setPage("attendance")}>Attendance</span>
+          <span onClick={() => setPage("dashboard")}>
+            Dashboard
+          </span>
+
+          <span onClick={() => setPage("students")}>
+            Students
+          </span>
+
+          <span onClick={() => setPage("attendance")}>
+            Attendance
+          </span>
 
           <button
             onClick={() => {
@@ -74,6 +93,7 @@ function App() {
       {page === "dashboard" && (
         <main className="container">
           <h1>Dashboard</h1>
+
           <p className="welcome">
             Welcome to Attendance Management System
           </p>
@@ -95,13 +115,20 @@ function App() {
             </div>
 
             <div className="card">
-              <h3>Total Attendance Records</h3>
-              <p>{attendance.length}</p>
+              <h3>Attendance Percentage</h3>
+              <p>
+                {students.length > 0
+                  ? Math.round(
+                      (presentCount / students.length) * 100
+                    )
+                  : 0}
+                %
+              </p>
             </div>
           </div>
 
           <section className="attendance-section">
-            <h2>Recent Attendance</h2>
+            <h2>Today's Attendance</h2>
 
             {todayAttendance.length === 0 ? (
               <p>No attendance records found for today.</p>
@@ -109,9 +136,9 @@ function App() {
               <table>
                 <thead>
                   <tr>
-                    <th>Student Name</th>
+                    <th>Student ID</th>
+                    <th>Name</th>
                     <th>Course</th>
-                    <th>Date</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -119,9 +146,9 @@ function App() {
                 <tbody>
                   {todayAttendance.map((record) => (
                     <tr key={record.id}>
+                      <td>{record.studentId}</td>
                       <td>{record.studentName}</td>
                       <td>{record.course}</td>
-                      <td>{record.date}</td>
                       <td
                         className={
                           record.status?.toLowerCase() === "present"

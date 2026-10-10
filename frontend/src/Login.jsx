@@ -1,26 +1,26 @@
 
 import { useState } from "react";
 
+const API_URL =
+  "https://attendance-management-project-v5fk.onrender.com";
+
 function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async (event) => {
+    event.preventDefault();
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "https://attendance-management-project-v5fk.onrender.com/auth/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ username, password }),
-        }
-      );
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
 
       const result = await response.text();
 
@@ -43,7 +43,9 @@ function Login({ onLogin }) {
         <div className="login-icon">🎓</div>
 
         <h1>Attendance Management System</h1>
-        <p className="login-subtitle">Welcome back! Please sign in.</p>
+        <p className="login-subtitle">
+          Welcome back! Please sign in.
+        </p>
 
         <form onSubmit={handleLogin}>
           <label htmlFor="username">Username</label>
@@ -52,8 +54,7 @@ function Login({ onLogin }) {
             type="text"
             placeholder="Enter your username"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
+            onChange={(event) => setUsername(event.target.value)}
             required
           />
 
@@ -63,8 +64,7 @@ function Login({ onLogin }) {
             type="password"
             placeholder="Enter your password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
+            onChange={(event) => setPassword(event.target.value)}
             required
           />
 
