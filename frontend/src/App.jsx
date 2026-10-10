@@ -1,207 +1,148 @@
+
 import { useEffect, useState } from "react";
-import "./App.css";
 import Login from "./Login";
 import Students from "./Students";
 import Attendance from "./Attendance";
 
-function App() {
+const API_URL = "https://attendance-management-project-v5fk.onrender.com";
 
+function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [page, setPage] = useState("dashboard");
-  const [totalStudents, setTotalStudents] = useState(0);
-const [presentToday, setPresentToday] = useState(0);
-const [absentToday, setAbsentToday] = useState(0);
-const [attendanceRecords, setAttendanceRecords] = useState([]);
-useEffect(() =>
-   {
+  const [students, setStudents] = useState([]);
+  const [attendance, setAttendance] = useState([]);
 
-  // Get total students
-  fetch("http://localhost:8080/students")
-    .then(response => response.json())
-    .then(data => {
-      setTotalStudents(data.length);
-    })
-    .catch(error => console.error("Student error:", error));
+  useEffect(() => {
+    if (!isLoggedIn) return;
 
-  // Get attendance records
-  fetch("http://localhost:8080/attendance")
-    .then(response => response.json())
-    .then(data => {
-
-      const today = new Date().toISOString().split("T")[0];
-
-      const todayAttendance = data.filter(
-        record => record.date === today
-      );
-
-      const present = todayAttendance.filter(
-        record => record.status === "Present"
-      ).length;
-
-      const absent = todayAttendance.filter(
-        record => record.status === "Absent"
-      ).length;
-
-      setPresentToday(present);
-      setAbsentToday(absent);
-
-    })
-    .catch(error => console.error("Attendance error:", error));
-
-   
-        // Get attendance records
-    fetch("http://localhost:8080/attendance")
-      .then(response => response.json())
-      .then(data => {
-
-        const today = new Date().toISOString().split("T")[0];
-
-        const todayRecords = data.filter(
-          record => record.date === today
-        );
-
-        setAttendanceRecords(todayRecords);
-
+    fetch(`${API_URL}/students`)
+      .then((response) => {
+        if (!response.ok) throw new Error("Unable to load students");
+        return response.json();
       })
-      .catch(error => console.error("Attendance records error:", error));
-}, []);
-  
+      .then((data) => setStudents(data))
+      .catch((error) => console.error("Students error:", error));
 
+    fetch(`${API_URL}/attendance`)
+      .then((response) => {
+        if (!response.ok) throw new Error("Unable to load attendance");
+        return response.json();
+      })
+      .then((data) => setAttendance(data))
+      .catch((error) => console.error("Attendance error:", error));
+  }, [isLoggedIn]);
 
-  // Show Login page if user is not logged in
   if (!isLoggedIn) {
-    return (
-      <Login onLogin={() => setIsLoggedIn(true)} />
-    );
+    return <Login onLogin={() => setIsLoggedIn(true)} />;
   }
 
-  // Logout
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setPage("dashboard");
-  };
+  const today = new Date().toISOString().split("T")[0];
+
+  const todayAttendance = attendance.filter(
+    (record) => record.date === today
+  );
+
+  const presentCount = todayAttendance.filter(
+    (record) => record.status?.toLowerCase() === "present"
+  ).length;
+
+  const absentCount = todayAttendance.filter(
+    (record) => record.status?.toLowerCase() === "absent"
+  ).length;
 
   return (
     <div className="app">
-
-      {/* Navigation Bar */}
       <nav className="navbar">
-
         <h2>Attendance Management System</h2>
 
         <div className="nav-links">
+          <span onClick={() => setPage("dashboard")}>Dashboard</span>
+          <span onClick={() => setPage("students")}>Students</span>
+          <span onClick={() => setPage("attendance")}>Attendance</span>
 
-          <span onClick={() => setPage("dashboard")}>
-            Dashboard
-          </span>
-
-          <span onClick={() => setPage("students")}>
-            Students
-          </span>
-
-          <span onClick={() => setPage("attendance")}>
-            Attendance
-          </span>
-
-          <button onClick={handleLogout}>
+          <button
+            onClick={() => {
+              setIsLoggedIn(false);
+              setPage("dashboard");
+            }}
+          >
             Logout
           </button>
-
         </div>
-
       </nav>
 
-      {/* Dashboard */}
       {page === "dashboard" && (
         <main className="container">
-
           <h1>Dashboard</h1>
-
           <p className="welcome">
             Welcome to Attendance Management System
           </p>
 
-          <div className="card">
-  <h3>Total Students</h3>
-  <p>{totalStudents}</p>
-</div>
+          <div className="cards">
+            <div className="card">
+              <h3>Total Students</h3>
+              <p>{students.length}</p>
+            </div>
 
-<div className="card">
-  <h3>Present Today</h3>
-  <p>{presentToday}</p>
-</div>
+            <div className="card">
+              <h3>Present Today</h3>
+              <p>{presentCount}</p>
+            </div>
 
-<div className="card">
-  <h3>Absent Today</h3>
-  <p>{absentToday}</p>
-</div>
+            <div className="card">
+              <h3>Absent Today</h3>
+              <p>{absentCount}</p>
+            </div>
 
-<div className="card">
-  <h3>Attendance Percentage</h3>
-  <p>
-    {totalStudents > 0
-      ? Math.round((presentToday / totalStudents) * 100)
-      : 0}%
-  </p>
-</div>
-  
+            <div className="card">
+              <h3>Total Attendance Records</h3>
+              <p>{attendance.length}</p>
+            </div>
+          </div>
 
           <section className="attendance-section">
+            <h2>Recent Attendance</h2>
 
-            <h2>Today's Attendance</h2>
+            {todayAttendance.length === 0 ? (
+              <p>No attendance records found for today.</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Student Name</th>
+                    <th>Course</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
 
-            <table>
-
-              <thead>
-                <tr>
-                  <th>Student ID</th>
-                  <th>Name</th>
-                  <th>Course</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-
-              <tbody>
-
-  {attendanceRecords.map(record => (
-    <tr key={record.id}>
-
-      <td>{record.studentId}</td>
-
-      <td>{record.studentName}</td>
-
-      <td>{record.course}</td>
-
-      <td className={
-        record.status === "Present"
-          ? "present"
-          : "absent"
-      }>
-        {record.status}
-      </td>
-
-    </tr>
-  ))}
-
-</tbody>
-
-            </table>
-
+                <tbody>
+                  {todayAttendance.map((record) => (
+                    <tr key={record.id}>
+                      <td>{record.studentName}</td>
+                      <td>{record.course}</td>
+                      <td>{record.date}</td>
+                      <td
+                        className={
+                          record.status?.toLowerCase() === "present"
+                            ? "present"
+                            : "absent"
+                        }
+                      >
+                        {record.status}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </section>
-
         </main>
       )}
 
-      {/* Students Page */}
-      {page === "students" && (
-        <Students />
-      )}
+      {page === "students" && <Students />}
 
-      {/* Attendance Page */}
-      {page === "attendance" && (
-        <Attendance />
-      )}
-
+      {page === "attendance" && <Attendance />}
     </div>
   );
 }
