@@ -5,16 +5,23 @@ const API_URL =
   "https://attendance-management-project-v5fk.onrender.com";
 
 function Login({ onLogin }) {
+  const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
-  const handleLogin = async (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
+    setMessage("");
 
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const endpoint = isRegister
+        ? "/auth/register"
+        : "/auth/login";
+
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -22,18 +29,27 @@ function Login({ onLogin }) {
         body: JSON.stringify({ username, password }),
       });
 
-    
-const result = await response.text();
+      const result = await response.text();
 
-if (response.ok && result.trim() === "Login successful") {
-  onLogin();
-} else {
-  alert("Login failed: " + result);
-}
-      
+      if (!response.ok) {
+        setMessage("Request failed: " + result);
+        return;
+      }
+
+      if (isRegister) {
+        setMessage("Registration successful! You can now log in.");
+        setIsRegister(false);
+        setPassword("");
+      } else if (result.trim() === "Login successful") {
+        onLogin();
+      } else {
+        setMessage("Invalid username or password.");
+      }
     } catch (error) {
-      console.error("Login error:", error);
-      alert("Unable to connect to server. Please try again.");
+      console.error(error);
+      setMessage(
+        "Cannot connect to the server. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -45,18 +61,23 @@ if (response.ok && result.trim() === "Login successful") {
         <div className="login-icon">🎓</div>
 
         <h1>Attendance Management System</h1>
+
         <p className="login-subtitle">
-          Welcome back! Please sign in.
+          {isRegister
+            ? "Create your account"
+            : "Welcome back! Please sign in."}
         </p>
 
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleSubmit}>
           <label htmlFor="username">Username</label>
           <input
             id="username"
             type="text"
             placeholder="Enter your username"
             value={username}
-            onChange={(event) => setUsername(event.target.value)}
+            onChange={(event) =>
+              setUsername(event.target.value)
+            }
             required
           />
 
@@ -66,17 +87,37 @@ if (response.ok && result.trim() === "Login successful") {
             type="password"
             placeholder="Enter your password"
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={(event) =>
+              setPassword(event.target.value)
+            }
             required
           />
 
           <button type="submit" disabled={loading}>
-            {loading ? "Signing in..." : "Login"}
+            {loading
+              ? "Please wait..."
+              : isRegister
+              ? "Register"
+              : "Login"}
           </button>
         </form>
 
-        <p className="login-footer">
-          Student Attendance &amp; Records Management
+        {message && <p role="status">{message}</p>}
+
+        <p>
+          {isRegister
+            ? "Already have an account?"
+            : "Don't have an account?"}
+          {" "}
+          <button
+            type="button"
+            onClick={() => {
+              setIsRegister(!isRegister);
+              setMessage("");
+            }}
+          >
+            {isRegister ? "Login" : "Register"}
+          </button>
         </p>
       </div>
     </div>
