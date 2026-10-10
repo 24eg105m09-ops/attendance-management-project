@@ -22,13 +22,15 @@ function Login({ onLogin }) {
         body: JSON.stringify({ username, password }),
       });
 
-      const result = await response.text();
+    
+const result = await response.text();
 
-      if (response.ok && result.trim() === "Login successful") {
-        onLogin();
-      } else {
-        alert("Invalid username or password");
-      }
+if (response.ok && result.trim() === "Login successful") {
+  onLogin();
+} else {
+  alert("Login failed: " + result);
+}
+      
     } catch (error) {
       console.error("Login error:", error);
       alert("Unable to connect to server. Please try again.");
