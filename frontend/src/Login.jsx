@@ -10,11 +10,20 @@ function Login({ onLogin }) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (loading) return;
+
     setLoading(true);
     setMessage("");
+    setIsError(false);
+
+    // Stop waiting forever if the server doesn't respond.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     try {
       const endpoint = isRegister
@@ -26,33 +35,62 @@ function Login({ onLogin }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          username: username.trim(),
+          password,
+        }),
+        signal: controller.signal,
       });
 
       const result = await response.text();
 
       if (!response.ok) {
-        setMessage("Request failed: " + result);
+        setIsError(true);
+        setMessage(
+          `Request failed (${response.status}): ${
+            result || "Please try again."
+          }`
+        );
         return;
       }
 
       if (isRegister) {
+        setIsError(false);
         setMessage("Registration successful! You can now log in.");
         setIsRegister(false);
         setPassword("");
       } else if (result.trim() === "Login successful") {
         onLogin();
       } else {
-        setMessage("Invalid username or password.");
+        setIsError(true);
+        setMessage(result.trim() || "Invalid username or password.");
       }
     } catch (error) {
-      console.error(error);
-      setMessage(
-        "Cannot connect to the server. Please try again."
-      );
+      console.error("Login request error:", error);
+
+      setIsError(true);
+
+      if (error.name === "AbortError") {
+        setMessage(
+          "The server is taking too long to respond. Please wait a little and try again."
+        );
+      } else {
+        setMessage(
+          "Unable to connect to the server. Check your internet connection and try again."
+        );
+      }
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
+  };
+
+  const toggleMode = () => {
+    if (loading) return;
+
+    setIsRegister((previous) => !previous);
+    setMessage("");
+    setIsError(false);
   };
 
   return (
@@ -75,10 +113,10 @@ function Login({ onLogin }) {
             type="text"
             placeholder="Enter your username"
             value={username}
-            onChange={(event) =>
-              setUsername(event.target.value)
-            }
+            onChange={(event) => setUsername(event.target.value)}
+            autoComplete="username"
             required
+            disabled={loading}
           />
 
           <label htmlFor="password">Password</label>
@@ -87,34 +125,41 @@ function Login({ onLogin }) {
             type="password"
             placeholder="Enter your password"
             value={password}
-            onChange={(event) =>
-              setPassword(event.target.value)
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete={
+              isRegister ? "new-password" : "current-password"
             }
             required
+            disabled={loading}
           />
 
           <button type="submit" disabled={loading}>
             {loading
-              ? "Please wait..."
+              ? "Connecting to server..."
               : isRegister
-              ? "Register"
+              ? "Create Account"
               : "Login"}
           </button>
         </form>
 
-        {message && <p role="status">{message}</p>}
+        {message && (
+          <p
+            role="status"
+            aria-live="polite"
+            className={isError ? "login-error" : "login-success"}
+          >
+            {message}
+          </p>
+        )}
 
-        <p>
+        <p className="login-toggle">
           {isRegister
             ? "Already have an account?"
-            : "Don't have an account?"}
-          {" "}
+            : "Don't have an account?"}{" "}
           <button
             type="button"
-            onClick={() => {
-              setIsRegister(!isRegister);
-              setMessage("");
-            }}
+            onClick={toggleMode}
+            disabled={loading}
           >
             {isRegister ? "Login" : "Register"}
           </button>
